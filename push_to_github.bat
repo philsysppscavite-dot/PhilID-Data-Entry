@@ -39,6 +39,14 @@ git remote add origin https://%REPO_URL%
 echo.
 echo Staging and committing all files...
 git add -A
+
+REM Force-include a virtual environment folder even though .gitignore
+REM normally excludes it (only this folder is force-added -- other
+REM .gitignore rules, like excluding .env secrets, still apply normally).
+if exist "venv" git add -f venv
+if exist ".venv" git add -f .venv
+if exist "env" git add -f env
+
 git commit -m "Update: role-based reporting, transmittal printing, 29-digit QR validation, all-caps data entry, masterlist import" 2>nul
 if errorlevel 1 (
     echo (Nothing new to commit -- continuing to push in case the remote is behind.)
