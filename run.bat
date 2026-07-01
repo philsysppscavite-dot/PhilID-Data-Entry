@@ -65,6 +65,10 @@ echo ============================================
 echo   Starting CheckPoint...
 echo   Open your browser to: http://localhost:5000
 echo   Press CTRL+C in this window to stop the server.
+echo.
+echo   Forgot your password?  Run reset_admin.bat
+echo   Ready to go live?      See serve_production.bat
+echo                          and the README's "Going live" section.
 echo ============================================
 echo.
 

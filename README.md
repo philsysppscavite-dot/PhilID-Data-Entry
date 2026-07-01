@@ -103,6 +103,13 @@ PhilSys-specific format) rather than a plain ID number, adjust the
 `handleDecodedText` function in `static/js/scan.js` to parse it before
 sending it to `/api/scan`.
 
+## Forgot your password / locked out
+
+Run **`reset_admin.bat`** (Windows) or `python reset_admin.py` (any OS) from
+the project folder. It lets you list existing accounts, reset any account's
+password, or create a brand-new admin account — no need to touch the
+database by hand.
+
 ## Adding more staff/admin accounts
 
 Once logged in as an admin, go to **Manage Users** in the sidebar to create,
@@ -138,11 +145,75 @@ If the repo on GitHub already has a README, license, or other files in it,
   git push -u origin main --force
   ```
 
+## Uploading manually to GitHub (drag-and-drop, no git)
+
+If you use GitHub's web uploader instead of `git push`, **do not drag in
+these folders** — `git push` skips them automatically via `.gitignore`, but
+the web uploader doesn't know about that file:
+
+- `venv/` (your local Python environment — huge, and machine-specific)
+- `instance/` (your local database — contains real check-in data, and
+  regenerates itself on each machine)
+- `__pycache__/` (compiled Python cache)
+- `.env` (your secrets, if you created one — never upload this)
+
+Everything else (`app.py`, `blueprints/`, `templates/`, `static/`, `data/`,
+`requirements.txt`, `run.bat`, etc.) is safe and needed.
+
+## Going live
+
+The Flask dev server (`python app.py` / `run.bat`) is fine for testing but
+isn't meant for real traffic. Before you go live, do this:
+
+1. **Set a real SECRET_KEY.** Copy `.env.example` to `.env` and fill in a
+   generated key:
+   ```bash
+   python -c "import secrets; print(secrets.token_hex(32))"
+   ```
+   Paste the output as `SECRET_KEY=...` in `.env`. Without this, sessions
+   reset every time the server restarts (everyone gets logged out).
+
+2. **Make sure `FLASK_DEBUG` is `0` or unset.** Debug mode exposes a code
+   execution console to anyone who can trigger an error page — never enable
+   it on a public deployment.
+
+3. **Use a production WSGI server, not the dev server:**
+   - **Windows / local network:** run `serve_production.bat` (uses
+     [Waitress](https://docs.pylonsproject.org/projects/waitress/)).
+     By default it listens on port 8080 — pass a different port as an
+     argument, e.g. `serve_production.bat 8000`.
+   - **Linux / a cloud host (Render, Railway, a VPS, etc.):**
+     ```bash
+     gunicorn -w 4 -b 0.0.0.0:$PORT wsgi:app
+     ```
+     A `Procfile` is already included for platforms that use one
+     (Render, Railway, Heroku-style hosts).
+
+4. **HTTPS is required for the QR camera to work from any device other
+   than the server itself.** Browsers block camera access on plain HTTP
+   except on `localhost`. Options:
+   - Deploy to a host that provides HTTPS automatically (Render, Railway,
+     Fly.io, etc. all do this out of the box).
+   - Or put the app behind a reverse proxy (nginx/Caddy) with a free
+     Let's Encrypt certificate if you're self-hosting on your own server.
+
+5. **First-time setup on the live server.** After deploying, run once
+   (via your host's shell/console, or SSH):
+   ```bash
+   python setup_db.py
+   ```
+   If the host doesn't give you an interactive terminal, set
+   `ADMIN_USERNAME` and `ADMIN_PASSWORD` environment variables first (see
+   `.env.example`) and the script will create the admin account
+   automatically instead of prompting.
+
+6. **Database at scale.** SQLite (the default) is fine for a single
+   checkpoint station or light multi-user use. If you expect many staff
+   scanning simultaneously at high volume, set `DATABASE_URL` in `.env` to
+   a Postgres/MySQL connection string instead — no code changes needed,
+   Flask-SQLAlchemy handles either.
+
 ## Notes
 
 - The SQLite database lives in `instance/checkin.db` and is git-ignored by
   default, so re-running `setup_db.py` on a fresh clone will rebuild it.
-- For production use, set a real `SECRET_KEY` environment variable instead
-  of the default in `config.py`, and consider switching
-  `SQLALCHEMY_DATABASE_URI` to Postgres/MySQL if you expect concurrent
-  writes at scale.

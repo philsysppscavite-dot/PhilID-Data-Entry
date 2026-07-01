@@ -1,6 +1,9 @@
 import os
 
+from dotenv import load_dotenv
 from flask import Flask
+
+load_dotenv()
 
 from config import Config
 from extensions import db, login_manager
@@ -37,4 +40,4 @@ def create_app(config_class=Config):
 app = create_app()
 
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    app.run(debug=app.config["DEBUG"], host=app.config["HOST"], port=app.config["PORT"])

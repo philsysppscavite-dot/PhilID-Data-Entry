@@ -13,6 +13,11 @@ It will:
 import csv
 import getpass
 import os
+import sys
+
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from app import create_app
 from extensions import db
@@ -69,6 +74,29 @@ def import_geo_data():
 def create_first_admin():
     if User.query.first():
         print("A user account already exists, skipping admin creation.")
+        return
+
+    # Non-interactive path: useful for cloud deploys run from a one-off
+    # command/shell where there's no interactive stdin.
+    env_username = os.environ.get("ADMIN_USERNAME")
+    env_password = os.environ.get("ADMIN_PASSWORD")
+    env_full_name = os.environ.get("ADMIN_FULL_NAME", "Administrator")
+
+    if env_username and env_password:
+        user = User(username=env_username, full_name=env_full_name, role="admin")
+        user.set_password(env_password)
+        db.session.add(user)
+        db.session.commit()
+        print(f"Admin account '{env_username}' created from ADMIN_USERNAME/ADMIN_PASSWORD env vars.")
+        return
+
+    if not sys.stdin.isatty():
+        print(
+            "\nNo user accounts found, and no interactive terminal is available "
+            "to create one here.\nSet ADMIN_USERNAME and ADMIN_PASSWORD environment "
+            "variables and re-run this script,\nor run 'python reset_admin.py' from "
+            "an interactive shell/console instead."
+        )
         return
 
     print("\nNo user accounts found. Let's create the first admin account.")
