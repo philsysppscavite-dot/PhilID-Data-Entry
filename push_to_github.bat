@@ -73,7 +73,7 @@ if errorlevel 1 (
 
 echo.
 echo Pushing to GitHub...
-git -c http.extraHeader="Authorization: Basic %GH_AUTH_HEADER%" push -u origin main
+git -c credential.helper= -c http.extraHeader="Authorization: Basic %GH_AUTH_HEADER%" push -u origin main
 
 if errorlevel 1 (
     echo.
