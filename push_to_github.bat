@@ -44,7 +44,7 @@ echo (Nothing will be displayed as you type/paste -- that's expected.)
 echo.
 
 REM Masked input via PowerShell (native batch can't hide typed characters)
-for /f "usebackq delims=" %%T in (`powershell -NoProfile -Command "$s = Read-Host -AsSecureString 'Token'; $p = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($s)); Write-Output $p"`) do set GH_TOKEN=%%T
+for /f "usebackq delims=" %%T in (`powershell -NoProfile -Command "$s = Read-Host -AsSecureString 'Token'; $b = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($s); $p = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($b); [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($b); Write-Output $p.Trim()"`) do set "GH_TOKEN=%%T"
 
 if "%GH_TOKEN%"=="" (
     echo [ERROR] No token entered. Aborting.
@@ -52,10 +52,16 @@ if "%GH_TOKEN%"=="" (
     exit /b 1
 )
 
+REM Base64-encode "x-access-token:<token>" for use as an HTTP Basic auth
+REM header. Sending it this way (instead of embedding it in the remote URL)
+REM avoids git/curl's strict URL parser entirely, so stray characters from
+REM copy/paste can't cause a "malformed URL" failure.
+for /f "usebackq delims=" %%B in (`powershell -NoProfile -Command "[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes('x-access-token:' + $env:GH_TOKEN))"`) do set "GH_AUTH_HEADER=%%B"
+
 echo.
-echo Configuring temporary authenticated remote...
+echo Configuring remote (no token stored in the URL)...
 git remote remove origin >nul 2>nul
-git remote add origin https://%GH_TOKEN%@%REPO_URL%
+git remote add origin https://%REPO_URL%
 
 echo.
 echo Staging and committing all files...
@@ -67,7 +73,7 @@ if errorlevel 1 (
 
 echo.
 echo Pushing to GitHub...
-git push -u origin main
+git -c http.extraHeader="Authorization: Basic %GH_AUTH_HEADER%" push -u origin main
 
 if errorlevel 1 (
     echo.
@@ -84,15 +90,14 @@ echo Push succeeded.
 
 :cleanup
 echo.
-echo Removing the token from the saved remote URL for safety...
-git remote remove origin >nul 2>nul
-git remote add origin https://%REPO_URL%
+echo Clearing token from memory...
 set GH_TOKEN=
+set GH_AUTH_HEADER=
 
 echo.
-echo Done. Your remote "origin" is now set to:
+echo Done. Your remote "origin" is set to:
 echo   https://%REPO_URL%
-echo (no token stored). Future pushes will ask you to sign in again,
+echo (no token stored anywhere). Future pushes will ask for your token again,
 echo or you can switch to the SSH URL if you have SSH keys set up:
 echo   git remote set-url origin git@github.com:philsysppscavite-dot/PhilID-Data-Entry.git
 echo.
