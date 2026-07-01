@@ -1,0 +1,30 @@
+databases:
+  - name: philid-db
+    databaseName: philid_checkin
+    plan: free
+
+services:
+  - type: web
+    name: philid-checkpoint
+    runtime: python
+    plan: free
+    branch: main
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn -w 4 -b 0.0.0.0:$PORT wsgi:app
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: philid-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: FLASK_DEBUG
+        value: "0"
+      - key: ADMIN_USERNAME
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: GOOGLE_DRIVE_FOLDER_ID
+        sync: false
+      - key: GOOGLE_SERVICE_ACCOUNT_JSON_B64
+        sync: false
