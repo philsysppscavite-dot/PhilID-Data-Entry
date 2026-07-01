@@ -4,15 +4,15 @@
 <div class="page-header">
     <div>
         <span class="eyebrow">Overview</span>
-        <h1>Dashboard</h1>
-        <p>Live record of ID scans across all registered residents.</p>
+        <h1>{{ 'Dashboard' if not scoped else 'My Activity' }}</h1>
+        <p>{{ 'Live record of ID scans across all registered residents.' if not scoped else 'Live record of the ID scans you personally made.' }}</p>
     </div>
     <a href="{{ url_for('main.scan') }}" class="btn btn-primary">+ Scan an ID</a>
 </div>
 
 <div class="stat-grid">
     <div class="stat-card">
-        <span class="eyebrow">Registered residents</span>
+        <span class="eyebrow">{{ 'Registered residents' if not scoped else 'Residents you handled' }}</span>
         <div class="stat-number">{{ total_residents }}</div>
     </div>
     <div class="stat-card accent-blue">

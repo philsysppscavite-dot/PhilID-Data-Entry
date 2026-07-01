@@ -27,7 +27,7 @@
             <tr>
                 <td class="mono">{{ u.username }}</td>
                 <td>{{ u.full_name }}</td>
-                <td><span class="badge {{ 'badge-admin' if u.is_admin else 'badge-staff' }}">{{ u.role|capitalize }}</span></td>
+                <td><span class="badge {{ 'badge-admin' if u.is_admin else ('badge-delivery' if u.is_delivery else 'badge-staff') }}">{{ u.role|capitalize }}</span></td>
                 <td><span class="badge {{ 'badge-active' if u.is_active_user else 'badge-disabled' }}">{{ 'Active' if u.is_active_user else 'Disabled' }}</span></td>
                 <td>{{ u.created_at.strftime('%b %d, %Y') }}</td>
                 <td>
@@ -71,6 +71,7 @@
                 <label for="new-role">Role</label>
                 <select id="new-role" name="role">
                     <option value="staff">Staff</option>
+                    <option value="delivery">Delivery</option>
                     <option value="admin">Admin</option>
                 </select>
             </div>

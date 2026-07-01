@@ -20,10 +20,33 @@ def admin_required(f):
     return wrapped
 
 
+def staff_or_admin_required(f):
+    """Blocks the 'delivery' role from actions meant for office staff:
+    editing/deleting a resident's master record. (Dashboard, Reports, and
+    Personnel are open to everyone now -- each user just sees data scoped
+    to their own activity there.)"""
+
+    @wraps(f)
+    def wrapped(*args, **kwargs):
+        if not current_user.is_authenticated or current_user.is_delivery:
+            flash("That page isn't available for delivery accounts.", "danger")
+            return redirect(url_for("main.scan"))
+        return f(*args, **kwargs)
+
+    return wrapped
+
+
+def default_landing_page():
+    """Where to send someone right after login, based on their role."""
+    if current_user.is_delivery:
+        return url_for("main.scan")
+    return url_for("main.dashboard")
+
+
 @bp.route("/login", methods=["GET", "POST"])
 def login():
     if current_user.is_authenticated:
-        return redirect(url_for("main.dashboard"))
+        return redirect(default_landing_page())
 
     if request.method == "POST":
         username = request.form.get("username", "").strip()
@@ -34,7 +57,15 @@ def login():
             login_user(user)
             flash(f"Welcome back, {user.full_name}.", "success")
             next_page = request.args.get("next")
-            return redirect(next_page or url_for("main.dashboard"))
+            # Don't honor a ?next= that points somewhere a delivery account
+            # can't access -- fall back to their own default landing page.
+            if next_page and user.is_delivery and not (
+                next_page.startswith("/scan")
+                or next_page.startswith("/search")
+                or next_page.startswith("/masterlist")
+            ):
+                next_page = None
+            return redirect(next_page or default_landing_page())
 
         flash("Invalid username or password.", "danger")
 

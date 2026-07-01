@@ -15,6 +15,7 @@ def create_app(config_class=Config):
     app.config.from_object(config_class)
 
     os.makedirs(os.path.join(app.root_path, "instance"), exist_ok=True)
+    os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
     db.init_app(app)
     login_manager.init_app(app)
@@ -33,6 +34,9 @@ def create_app(config_class=Config):
 
     with app.app_context():
         db.create_all()
+
+        from migrations import run_all
+        run_all(db)
 
     return app
 

@@ -9,19 +9,26 @@ multi-user account management.
 
 - **Webcam QR scanning** in the browser (no extra hardware/software needed)
 - **Auto check-in/check-out**: scanning a known ID toggles between time-in
-  and time-out automatically
+  and time-out automatically, with a **printable time-in/time-out slip**
 - **New ID registration**: unrecognized IDs prompt a quick form (first /
   middle / last name + cascading Province / City-Municipality / Barangay
-  dropdowns) before logging the first time-in
+  dropdowns, plus optional address line and contact number) before logging
+  the first time-in
 - **Dashboard** with live stats and a filterable, searchable data table of
   every scan (by name/ID, province, city, type, date range)
 - **Search / Lookup page**: find a resident by scanning their QR code *or*
   typing a name/ID keyword, and view their full profile plus complete visit
   history — without logging a new time-in/out (useful for verification or
   answering "when did this person last check in?")
+- **ID Delivery Masterlist**: a filterable, printable/exportable (CSV) list
+  of residents and their addresses to hand to delivery personnel
+- **ID Delivery Report**: mark an ID as delivered with a required
+  proof-of-delivery photo, then track delivered vs. pending counts on a
+  printable report with photo documentation
 - **Multi-user accounts**: admins can create, disable, or delete staff
   accounts from the Manage Users page
-- **42,000+ barangay records** pre-loaded from your PSGC spreadsheet
+- **Coverage limited to CALABARZON**: Cavite, Laguna, Batangas, Rizal, and
+  Quezon (including Lucena City), pre-loaded from PSGC data
 
 ## Project structure
 
@@ -160,6 +167,56 @@ the web uploader doesn't know about that file:
 Everything else (`app.py`, `blueprints/`, `templates/`, `static/`, `data/`,
 `requirements.txt`, `run.bat`, etc.) is safe and needed.
 
+## Google Drive photo storage (recommended for going live)
+
+By default, proof-of-delivery photos save to `static/uploads/delivery/` on
+disk. That's fine for local testing, but **most cloud hosts (Render,
+Railway, Heroku-style platforms) wipe local disk storage on every
+redeploy** — so on a live deployment your delivery photos would disappear
+the next time you push a change. Storing them in Google Drive instead keeps
+them permanently and lets you view/back them up straight from Drive.
+
+The app is already wired to use this Drive folder as the default target:
+`https://drive.google.com/drive/folders/18pKt_-d9igumU2E72tS5VupEYSg0tukF`
+
+To enable it:
+
+1. **Create a Google Cloud service account** (a free Google Cloud project is
+   enough, no billing required for this):
+   - Go to [console.cloud.google.com](https://console.cloud.google.com/),
+     create/select a project.
+   - Enable the **Google Drive API** for that project (APIs & Services →
+     Enable APIs and Services → search "Google Drive API" → Enable).
+   - Go to **APIs & Services → Credentials → Create Credentials → Service
+     Account**. Give it any name (e.g. `checkpoint-uploader`).
+   - Open the new service account → **Keys → Add Key → Create new key →
+     JSON**. This downloads a `.json` key file — keep it private, never
+     commit it to GitHub.
+
+2. **Share the Drive folder with the service account.** Open the service
+   account's details page and copy its email address (it looks like
+   `checkpoint-uploader@your-project.iam.gserviceaccount.com`). Open the
+   Drive folder above, click **Share**, paste that email in, and give it
+   **Editor** access.
+
+3. **Base64-encode the JSON key file** — this turns it into one line of
+   text you can paste as an environment variable:
+   ```bash
+   base64 -w0 service-account-key.json
+   ```
+   (On Windows PowerShell: `[Convert]::ToBase64String([IO.File]::ReadAllBytes("service-account-key.json"))`)
+
+4. **Set the environment variables** — locally in your `.env` file, and on
+   your hosting provider's dashboard when you go live:
+   ```
+   GOOGLE_DRIVE_FOLDER_ID=18pKt_-d9igumU2E72tS5VupEYSg0tukF
+   GOOGLE_SERVICE_ACCOUNT_JSON_B64=<paste the long base64 string here>
+   ```
+
+If these aren't set, the app automatically falls back to local disk storage
+— nothing breaks, delivery photos just won't survive a redeploy on hosts
+with ephemeral disks.
+
 ## Going live
 
 The Flask dev server (`python app.py` / `run.bat`) is fine for testing but
@@ -213,7 +270,40 @@ isn't meant for real traffic. Before you go live, do this:
    a Postgres/MySQL connection string instead — no code changes needed,
    Flask-SQLAlchemy handles either.
 
+7. **Set the Google Drive env vars** (`GOOGLE_DRIVE_FOLDER_ID`,
+   `GOOGLE_SERVICE_ACCOUNT_JSON_B64`) from the section above, so
+   proof-of-delivery photos persist across redeploys.
+
+8. **Verify end-to-end** after deploying: sign in, scan/register a resident
+   on **Scan ID**, look them up on **Search**, mark a delivery with a photo,
+   and confirm it appears on **Delivery Report** and in the shared Google
+   Drive folder.
+
 ## Notes
 
 - The SQLite database lives in `instance/checkin.db` and is git-ignored by
   default, so re-running `setup_db.py` on a fresh clone will rebuild it.
+- The barangay reference table only imports once (it's skipped if it already
+  has rows). If you're upgrading an **existing** installation to the new
+  Cavite/Laguna/Batangas/Rizal/Quezon-only `geocode.csv`, delete
+  `instance/checkin.db` (or the `geo_barangay` rows) and re-run
+  `python setup_db.py` so the province dropdowns pick up the new coverage.
+  This does not touch your registered residents or visit logs, which live in
+  separate tables — but SQLite doesn't let you drop one table without a
+  script, so the simplest path for a test/staging install is to back up
+  `instance/checkin.db`, delete it, and re-run setup (this also resets user
+  accounts). For a live install with real data, instead run this once from a
+  Python shell in the project folder:
+  ```python
+  from app import create_app
+  from extensions import db
+  from models import GeoBarangay
+  app = create_app()
+  with app.app_context():
+      GeoBarangay.query.delete()
+      db.session.commit()
+  ```
+  then run `python setup_db.py` again to re-import just the geo table.
+- Proof-of-delivery photos are saved to `static/uploads/delivery/` (git-ignored).
+  Back this folder up along with `instance/checkin.db` if you need to preserve
+  delivery records.

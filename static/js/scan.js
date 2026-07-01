@@ -10,13 +10,40 @@ const provinceSelect = document.getElementById("province");
 const citySelect = document.getElementById("city");
 const barangaySelect = document.getElementById("barangay");
 
+// PhilSys ID QR codes encode a 29-digit Transaction Reference Number (TRN).
+// Anything else isn't a valid PhilSys ID and is rejected before it's ever
+// sent to the server.
+const ID_NUMBER_RE = /^\d{29}$/;
+
+// Data-entry fields (name/address) are always stored in ALL CAPS, to match
+// the masterlist/reference data convention -- force it as the person types.
+["first_name", "middle_name", "last_name", "suffix", "address_line"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+        el.addEventListener("input", () => {
+            const pos = el.selectionStart;
+            el.value = el.value.toUpperCase();
+            el.setSelectionRange(pos, pos);
+        });
+    }
+});
+
 let pendingIdNumber = null;
 let processing = false;
 let scanner = null;
+let lastSlipData = null;
 
 function showResultLogged(data) {
     const cls = data.log_type === "IN" ? "in" : "out";
     const icon = data.log_type === "IN" ? "IN" : "OUT";
+    lastSlipData = {
+        type: data.log_type,
+        id_number: data.resident.id_number,
+        full_name: data.resident.full_name,
+        address: `${data.resident.barangay}, ${data.resident.city_municipality}, ${data.resident.province}`,
+        timestamp: data.timestamp,
+        scanned_by: data.scanned_by,
+    };
     resultPanel.innerHTML = `
         <span class="bracket-bl"></span><span class="bracket-br"></span>
         <div class="result-icon ${cls}">${icon}</div>
@@ -24,7 +51,11 @@ function showResultLogged(data) {
         <div class="result-meta mono">${data.resident.id_number}</div>
         <div class="result-meta">${data.resident.barangay}, ${data.resident.city_municipality}, ${data.resident.province}</div>
         <div class="result-meta mono" style="margin-top:6px;">${data.timestamp}</div>
+        <button type="button" class="btn btn-outline btn-sm" id="print-slip-btn" style="margin-top:14px;">Print Slip</button>
     `;
+    document.getElementById("print-slip-btn").addEventListener("click", () => {
+        if (lastSlipData) printCheckSlip(lastSlipData);
+    });
 }
 
 function showResultError(message) {
@@ -105,10 +136,13 @@ registerForm.addEventListener("submit", async (e) => {
         first_name: document.getElementById("first_name").value.trim(),
         middle_name: document.getElementById("middle_name").value.trim(),
         last_name: document.getElementById("last_name").value.trim(),
+        suffix: document.getElementById("suffix").value.trim(),
         province: provinceSelect.value,
         city_municipality: citySelect.value,
         barangay: barangaySelect.value,
         geocode: geocodeOpt ? geocodeOpt.dataset.geocode : "",
+        address_line: document.getElementById("address_line").value.trim(),
+        contact_number: document.getElementById("contact_number").value.trim(),
     };
 
     try {
@@ -121,7 +155,7 @@ registerForm.addEventListener("submit", async (e) => {
         if (!res.ok) throw new Error(data.error || "Registration failed.");
 
         registerModal.style.display = "none";
-        showResultLogged({ log_type: "IN", resident: data.resident, timestamp: data.timestamp });
+        showResultLogged({ log_type: "IN", resident: data.resident, timestamp: data.timestamp, scanned_by: data.scanned_by });
         pendingIdNumber = null;
         resumeScanning();
     } catch (err) {
@@ -133,13 +167,25 @@ registerForm.addEventListener("submit", async (e) => {
 async function handleDecodedText(decodedText) {
     if (processing) return;
     processing = true;
+
+    const idNumber = (decodedText || "").trim();
+
+    if (!ID_NUMBER_RE.test(idNumber)) {
+        showResultError(
+            `Invalid QR code. A PhilSys ID number must be exactly 29 digits ` +
+            `(got ${idNumber.length} character${idNumber.length === 1 ? "" : "s"}).`
+        );
+        resumeScanning();
+        return;
+    }
+
     scanStatus.textContent = "Processing scan...";
 
     try {
         const res = await fetch("/api/scan", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id_number: decodedText }),
+            body: JSON.stringify({ id_number: idNumber }),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Scan failed.");

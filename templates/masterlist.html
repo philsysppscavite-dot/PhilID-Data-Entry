@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Masterlist · CheckPoint{% endblock %}
+{% block content %}
+<div class="page-header no-print">
+    <div>
+        <span class="eyebrow">Delivery Personnel</span>
+        <h1>ID Delivery Masterlist</h1>
+        <p>Filter by area, then print or export the list to hand to the delivery team.</p>
+    </div>
+    <div style="display:flex; gap:10px;">
+        {% if current_user.is_admin %}
+        <input type="file" id="import-file-input" accept=".xlsx" style="display:none;">
+        <button class="btn btn-outline" id="import-masterlist-btn">Import Masterlist (.xlsx)</button>
+        {% endif %}
+        <button class="btn btn-outline" id="export-csv-btn">Export CSV</button>
+        <button class="btn btn-primary" id="print-list-btn">Print Masterlist</button>
+    </div>
+</div>
+
+{% if current_user.is_admin %}
+<div id="import-result" class="flash flash-info no-print" style="display:none;"></div>
+{% endif %}
+
+<div class="table-panel">
+    <div class="table-toolbar no-print">
+        <select id="filter-province"><option value="">All provinces</option></select>
+        <select id="filter-city"><option value="">All cities/municipalities</option></select>
+        <select id="filter-barangay"><option value="">All barangays</option></select>
+        <select id="filter-status">
+            <option value="">All statuses</option>
+            <option value="pending">Pending delivery</option>
+            <option value="out_for_delivery">Out for delivery</option>
+            <option value="delivered">Already delivered</option>
+            <option value="returned">Returned / not delivered</option>
+            <option value="returned_to_office">Returned to office</option>
+        </select>
+        <span class="spacer"></span>
+        <button class="btn btn-outline btn-sm" id="clear-filters">Clear filters</button>
+    </div>
+
+    <div id="print-header" class="print-only">
+        <h2>PhilSys ID Delivery Masterlist</h2>
+        <p id="print-meta"></p>
+    </div>
+
+    <div id="table-wrap">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th style="width:34px;">#</th>
+                    <th>ID Number</th>
+                    <th>Full Name</th>
+                    <th>Address</th>
+                    <th>Contact No.</th>
+                    <th>Status</th>
+                    <th class="no-print">Signature / Received By</th>
+                </tr>
+            </thead>
+            <tbody id="masterlist-tbody">
+                <tr><td colspan="7" class="empty-state">Loading records...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>window.MASTERLIST_IS_ADMIN = {{ 'true' if current_user.is_admin else 'false' }};</script>
+<script src="{{ url_for('static', filename='js/masterlist.js') }}"></script>
+{% endblock %}

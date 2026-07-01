@@ -21,13 +21,25 @@
         </div>
         <nav class="nav-links">
             <a href="{{ url_for('main.dashboard') }}" class="{{ 'active' if request.endpoint == 'main.dashboard' }}">
-                <span class="nav-icon">&#9635;</span> Dashboard
+                <span class="nav-icon">&#9635;</span> {{ 'Dashboard' if current_user.is_admin else 'My Activity' }}
             </a>
             <a href="{{ url_for('main.scan') }}" class="{{ 'active' if request.endpoint == 'main.scan' }}">
                 <span class="nav-icon">&#9635;</span> Scan ID
             </a>
             <a href="{{ url_for('main.search') }}" class="{{ 'active' if request.endpoint == 'main.search' }}">
                 <span class="nav-icon">&#9635;</span> Search
+            </a>
+            <a href="{{ url_for('main.masterlist') }}" class="{{ 'active' if request.endpoint == 'main.masterlist' }}">
+                <span class="nav-icon">&#9635;</span> Masterlist
+            </a>
+            <a href="{{ url_for('main.reports') }}" class="{{ 'active' if request.endpoint == 'main.reports' }}">
+                <span class="nav-icon">&#9635;</span> {{ 'Delivery Report' if current_user.is_admin else 'My Deliveries' }}
+            </a>
+            <a href="{{ url_for('main.personnel') }}" class="{{ 'active' if request.endpoint == 'main.personnel' }}">
+                <span class="nav-icon">&#9635;</span> {{ 'Delivery Personnel' if current_user.is_admin else 'My Performance' }}
+            </a>
+            <a href="{{ url_for('main.transmittal') }}" class="{{ 'active' if request.endpoint == 'main.transmittal' }}">
+                <span class="nav-icon">&#9635;</span> Transmittal
             </a>
             {% if current_user.is_admin %}
             <a href="{{ url_for('auth.users') }}" class="{{ 'active' if request.endpoint == 'auth.users' }}">
