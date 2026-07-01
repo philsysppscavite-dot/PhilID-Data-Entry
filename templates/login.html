@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Sign In · CheckPoint{% endblock %}
+{% block content_standalone %}
+<div class="login-wrap">
+    <div class="login-card bracket-panel">
+        <span class="bracket-bl"></span><span class="bracket-br"></span>
+        <div class="login-logos">
+            <img src="{{ url_for('static', filename='img/philsys.png') }}" alt="PhilSys">
+            <img src="{{ url_for('static', filename='img/psa.png') }}" alt="PSA">
+        </div>
+        <h1>CheckPoint</h1>
+        <p class="sub">Sign in to scan IDs and manage records</p>
+        <form method="POST">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" required autofocus autocomplete="username">
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required autocomplete="current-password">
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">Sign in</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

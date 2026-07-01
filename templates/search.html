@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Search · CheckPoint{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Lookup</span>
+        <h1>Search Records</h1>
+        <p>Find a resident by scanning their ID or typing a name/ID number. This does not log a new visit.</p>
+    </div>
+</div>
+
+<div class="search-tabs">
+    <button class="tab-btn active" data-tab="qr">Scan QR Code</button>
+    <button class="tab-btn" data-tab="manual">Manual Keyword Search</button>
+</div>
+
+<div class="scan-layout">
+    <div>
+        <!-- QR mode -->
+        <div id="tab-qr" class="tab-panel">
+            <div class="scanner-box bracket-panel">
+                <span class="bracket-bl"></span><span class="bracket-br"></span>
+                <div id="qr-reader"></div>
+                <div class="scan-status" id="scan-status">Point a QR code at the camera to look someone up</div>
+            </div>
+        </div>
+
+        <!-- Manual mode -->
+        <div id="tab-manual" class="tab-panel" style="display:none;">
+            <div class="bracket-panel">
+                <span class="bracket-bl"></span><span class="bracket-br"></span>
+                <div class="form-group" style="margin-bottom: 14px;">
+                    <label for="keyword-input">Name or ID Number</label>
+                    <input type="text" id="keyword-input" placeholder="Start typing to search...">
+                </div>
+                <div id="keyword-results"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="result-panel" class="bracket-panel result-card">
+        <span class="bracket-bl"></span><span class="bracket-br"></span>
+        <div class="eyebrow">No record selected</div>
+        <p style="color: var(--ink-soft); font-size: 13.5px; max-width: 320px;">
+            Scan a QR code or search by keyword to view a resident's profile and visit history.
+        </p>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+<script src="{{ url_for('static', filename='js/search.js') }}"></script>
+{% endblock %}

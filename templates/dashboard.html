@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Dashboard · CheckPoint{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Overview</span>
+        <h1>Dashboard</h1>
+        <p>Live record of ID scans across all registered residents.</p>
+    </div>
+    <a href="{{ url_for('main.scan') }}" class="btn btn-primary">+ Scan an ID</a>
+</div>
+
+<div class="stat-grid">
+    <div class="stat-card">
+        <span class="eyebrow">Registered residents</span>
+        <div class="stat-number">{{ total_residents }}</div>
+    </div>
+    <div class="stat-card accent-blue">
+        <span class="eyebrow">Scans today</span>
+        <div class="stat-number">{{ logs_today }}</div>
+    </div>
+    <div class="stat-card accent-gold">
+        <span class="eyebrow">Time-in today</span>
+        <div class="stat-number">{{ ins_today }}</div>
+    </div>
+    <div class="stat-card accent-red">
+        <span class="eyebrow">Time-out today</span>
+        <div class="stat-number">{{ outs_today }}</div>
+    </div>
+</div>
+
+<div class="table-panel">
+    <div class="table-toolbar">
+        <input type="text" id="filter-search" placeholder="Search name or ID number...">
+        <select id="filter-province"><option value="">All provinces</option></select>
+        <select id="filter-city"><option value="">All cities/municipalities</option></select>
+        <select id="filter-type">
+            <option value="">All types</option>
+            <option value="IN">Time-in</option>
+            <option value="OUT">Time-out</option>
+        </select>
+        <input type="date" id="filter-date-from">
+        <input type="date" id="filter-date-to">
+        <span class="spacer"></span>
+        <button class="btn btn-outline btn-sm" id="clear-filters">Clear filters</button>
+    </div>
+    <div id="table-wrap">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>ID Number</th>
+                    <th>Full Name</th>
+                    <th>Barangay</th>
+                    <th>City/Municipality</th>
+                    <th>Province</th>
+                    <th>Type</th>
+                    <th>Timestamp</th>
+                    <th>Scanned By</th>
+                </tr>
+            </thead>
+            <tbody id="logs-tbody">
+                <tr><td colspan="8" class="empty-state">Loading records...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}
