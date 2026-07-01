@@ -32,8 +32,11 @@ if errorlevel 1 (
 if not exist ".git" (
     echo Initializing a new git repository here...
     git init
-    git branch -M main
 )
+
+REM Always make sure the local branch is named "main", even if the
+REM repo already existed with a different default branch (e.g. "master").
+git branch -M main
 
 echo.
 echo Paste your GitHub Personal Access Token below.
