@@ -48,6 +48,14 @@ qr-checkin-system/
 
 ## Setup
 
+**Windows quick start:** just double-click **`run.bat`**. It creates a
+virtual environment, installs dependencies, runs first-time database setup
+(including the barangay import and admin account creation) the first time
+only, then starts the app and opens it in your browser. Run it again any
+time to start the server — it skips setup on subsequent runs.
+
+**Manual setup** (any OS):
+
 1. **Install dependencies** (Python 3.10+ recommended):
 
    ```bash
