@@ -63,5 +63,22 @@ if errorlevel 1 (
 
 echo.
 echo Push succeeded.
+
+echo.
+echo ============================================================
+echo  Verifying what is actually tracked in this repo:
+echo ============================================================
+for /f %%C in ('git ls-files ^| find /c /v ""') do set TRACKED_COUNT=%%C
+echo Total files tracked by git: %TRACKED_COUNT%
+echo.
+echo Full list (also matches what is now on GitHub):
+git ls-files
+echo.
+echo If you expected a file that is NOT in the list above, it is
+echo most likely being excluded by .gitignore. Open .gitignore in
+echo this folder to see what is intentionally excluded (things like
+echo .env, __pycache__, venv, or uploaded files are usually excluded
+echo on purpose to avoid leaking secrets or bloating the repo).
+echo.
 echo.
 pause
