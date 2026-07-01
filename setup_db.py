@@ -33,16 +33,23 @@ def import_geo_data():
 
     print("Importing barangay/city/province data, this may take a minute...")
     batch = []
+    seen_geocodes = set()
+    skipped = 0
     with open(CSV_PATH, newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
-        for i, row in enumerate(reader, start=1):
+        for row in reader:
+            geocode = (row.get("geocode") or "").strip()
+            if not geocode or geocode in seen_geocodes:
+                skipped += 1
+                continue
+            seen_geocodes.add(geocode)
             batch.append(
                 GeoBarangay(
                     region=row["region"],
                     province=row["province"],
                     city_municipality=row["city_municipality"],
                     barangay=row["barangay"],
-                    geocode=row["geocode"],
+                    geocode=geocode,
                 )
             )
             if len(batch) >= 2000:
@@ -55,6 +62,8 @@ def import_geo_data():
 
     total = GeoBarangay.query.count()
     print(f"Imported {total} barangay records.")
+    if skipped:
+        print(f"Skipped {skipped} duplicate/blank geocode row(s) in the source CSV.")
 
 
 def create_first_admin():
