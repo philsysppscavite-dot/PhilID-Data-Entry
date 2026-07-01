@@ -52,16 +52,10 @@ if "%GH_TOKEN%"=="" (
     exit /b 1
 )
 
-REM Base64-encode "x-access-token:<token>" for use as an HTTP Basic auth
-REM header. Sending it this way (instead of embedding it in the remote URL)
-REM avoids git/curl's strict URL parser entirely, so stray characters from
-REM copy/paste can't cause a "malformed URL" failure.
-for /f "usebackq delims=" %%B in (`powershell -NoProfile -Command "[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes('x-access-token:' + $env:GH_TOKEN))"`) do set "GH_AUTH_HEADER=%%B"
-
 echo.
-echo Configuring remote (no token stored in the URL)...
+echo Configuring temporary authenticated remote...
 git remote remove origin >nul 2>nul
-git remote add origin https://%REPO_URL%
+git remote add origin https://x-access-token:%GH_TOKEN%@%REPO_URL%
 
 echo.
 echo Staging and committing all files...
@@ -73,7 +67,7 @@ if errorlevel 1 (
 
 echo.
 echo Pushing to GitHub...
-git -c credential.helper= -c http.extraHeader="Authorization: Basic %GH_AUTH_HEADER%" push -u origin main
+git -c credential.helper= push -u origin main
 
 if errorlevel 1 (
     echo.
@@ -90,14 +84,15 @@ echo Push succeeded.
 
 :cleanup
 echo.
-echo Clearing token from memory...
+echo Removing the token from the saved remote URL for safety...
+git remote remove origin >nul 2>nul
+git remote add origin https://%REPO_URL%
 set GH_TOKEN=
-set GH_AUTH_HEADER=
 
 echo.
-echo Done. Your remote "origin" is set to:
+echo Done. Your remote "origin" is now set to:
 echo   https://%REPO_URL%
-echo (no token stored anywhere). Future pushes will ask for your token again,
+echo (no token stored). Future pushes will ask you to sign in again,
 echo or you can switch to the SSH URL if you have SSH keys set up:
 echo   git remote set-url origin git@github.com:philsysppscavite-dot/PhilID-Data-Entry.git
 echo.
