@@ -3,20 +3,13 @@ setlocal enabledelayedexpansion
 
 REM ============================================================
 REM  Pushes this project to:
-REM  git@github.com:philsysppscavite-dot/PhilID-Data-Entry.git
+REM  https://github.com/philsysppscavite-dot/PhilID-Data-Entry.git
 REM
-REM  You'll be prompted for a GitHub Personal Access Token (PAT).
-REM  It is only held in memory for this run -- it is never written
-REM  to any file, and is scrubbed from the saved git remote after
-REM  the push completes.
-REM
-REM  How to create a token (2 minutes):
-REM    1. github.com -> your profile photo -> Settings
-REM    2. Developer settings -> Personal access tokens -> Fine-grained tokens
-REM    3. "Generate new token" -> Repository access: "Only select
-REM       repositories" -> choose PhilID-Data-Entry
-REM    4. Permissions -> Repository permissions -> "Contents": Read and write
-REM    5. Generate, then COPY the token (you only see it once)
+REM  Authentication is handled by Git Credential Manager (installed
+REM  with Git for Windows). The first time you push, a browser
+REM  window will open asking you to sign in to GitHub. After that,
+REM  your credentials are cached securely by Windows, so future
+REM  pushes won't ask again.
 REM ============================================================
 
 set REPO_URL=github.com/philsysppscavite-dot/PhilID-Data-Entry.git
@@ -39,23 +32,9 @@ REM repo already existed with a different default branch (e.g. "master").
 git branch -M main
 
 echo.
-echo Paste your GitHub Personal Access Token below.
-echo (Nothing will be displayed as you type/paste -- that's expected.)
-echo.
-
-REM Masked input via PowerShell (native batch can't hide typed characters)
-for /f "usebackq delims=" %%T in (`powershell -NoProfile -Command "$s = Read-Host -AsSecureString 'Token'; $b = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($s); $p = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($b); [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($b); Write-Output $p.Trim()"`) do set "GH_TOKEN=%%T"
-
-if "%GH_TOKEN%"=="" (
-    echo [ERROR] No token entered. Aborting.
-    pause
-    exit /b 1
-)
-
-echo.
-echo Configuring temporary authenticated remote...
+echo Configuring remote...
 git remote remove origin >nul 2>nul
-git remote add origin https://x-access-token:%GH_TOKEN%@%REPO_URL%
+git remote add origin https://%REPO_URL%
 
 echo.
 echo Staging and committing all files...
@@ -67,33 +46,22 @@ if errorlevel 1 (
 
 echo.
 echo Pushing to GitHub...
-git -c credential.helper= push -u origin main
+echo If a browser window opens, sign in to GitHub there to authenticate.
+git push -u origin main
 
 if errorlevel 1 (
     echo.
     echo [ERROR] Push failed. Common causes:
-    echo   - Token doesn't have "Contents: Read and write" on this repo
+    echo   - You didn't complete the browser sign-in, or signed into the wrong account
+    echo   - Your GitHub account doesn't have write access to this repo
     echo   - The repo already has commits that conflict with yours
     echo     ^(try: git pull origin main --allow-unrelated-histories^)
-    echo   - Token was mistyped/expired
-    goto cleanup
+    echo.
+    pause
+    exit /b 1
 )
 
 echo.
 echo Push succeeded.
-
-:cleanup
-echo.
-echo Removing the token from the saved remote URL for safety...
-git remote remove origin >nul 2>nul
-git remote add origin https://%REPO_URL%
-set GH_TOKEN=
-
-echo.
-echo Done. Your remote "origin" is now set to:
-echo   https://%REPO_URL%
-echo (no token stored). Future pushes will ask you to sign in again,
-echo or you can switch to the SSH URL if you have SSH keys set up:
-echo   git remote set-url origin git@github.com:philsysppscavite-dot/PhilID-Data-Entry.git
 echo.
 pause
