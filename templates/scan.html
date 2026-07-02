@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Scan ID · CheckPoint{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Check-in station</span>
+        <h1>Scan ID</h1>
+        <p>Point a registered ID's QR code at the camera to log a time-in or time-out.</p>
+    </div>
+</div>
+
+<div class="scan-layout">
+    <div class="scanner-box bracket-panel">
+        <span class="bracket-bl"></span><span class="bracket-br"></span>
+        <div id="qr-reader"></div>
+        <div class="scan-status" id="scan-status">Point a QR code at the camera</div>
+    </div>
+
+    <div id="result-panel" class="bracket-panel result-card">
+        <span class="bracket-bl"></span><span class="bracket-br"></span>
+        <div class="eyebrow">Awaiting scan</div>
+        <p style="color: var(--ink-soft); font-size: 13.5px; max-width: 320px;">
+            Scan results and new-resident registration will appear here.
+        </p>
+    </div>
+</div>
+
+<!-- New resident registration modal -->
+<div id="register-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-box bracket-panel">
+        <span class="bracket-bl"></span><span class="bracket-br"></span>
+        <div class="eyebrow">Unrecognized ID</div>
+        <h2 style="margin-top:4px;">Register New Resident</h2>
+        <p style="color: var(--ink-soft); font-size: 13.5px; margin-bottom: 18px;">
+            ID number <strong id="modal-id-number" class="mono"></strong> isn't in the system yet.
+            Fill in the details below to register and log the first time-in.
+        </p>
+        <form id="register-form">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="first_name">First Name</label>
+                    <input type="text" id="first_name" required>
+                </div>
+                <div class="form-group">
+                    <label for="middle_name">Middle Name</label>
+                    <input type="text" id="middle_name">
+                </div>
+            </div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="last_name">Last Name</label>
+                    <input type="text" id="last_name" required>
+                </div>
+                <div class="form-group">
+                    <label for="suffix">Suffix</label>
+                    <input type="text" id="suffix" placeholder="Jr., Sr., III...">
+                </div>
+            </div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="province">Province</label>
+                    <select id="province" required><option value="">Select province...</option></select>
+                </div>
+                <div class="form-group">
+                    <label for="city">City/Municipality</label>
+                    <select id="city" required disabled><option value="">Select province first...</option></select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="barangay">Barangay</label>
+                <select id="barangay" required disabled><option value="">Select city/municipality first...</option></select>
+            </div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="address_line">House No. / Street (optional)</label>
+                    <input type="text" id="address_line">
+                </div>
+                <div class="form-group">
+                    <label for="contact_number">Contact Number (optional)</label>
+                    <input type="text" id="contact_number" placeholder="09XXXXXXXXX">
+                </div>
+            </div>
+            <div id="register-error" class="flash flash-danger" style="display:none; margin-bottom: 14px;"></div>
+            <div style="display:flex; gap: 10px;">
+                <button type="button" class="btn btn-outline" id="cancel-register">Cancel</button>
+                <button type="submit" class="btn btn-primary btn-block">Register &amp; Log Time-In</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+<script src="{{ url_for('static', filename='js/scan.js') }}"></script>
+{% endblock %}

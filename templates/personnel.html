@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Delivery Personnel · CheckPoint{% endblock %}
+{% block content %}
+<div class="page-header no-print">
+    <div>
+        <span class="eyebrow">Reporting</span>
+        <h1>{{ 'Delivery Personnel' if not scoped else 'My Performance' }}</h1>
+        <p>{{ 'Per-rider totals: delivered, currently out (pending), returned/not delivered, and returned-to-office tallies.' if not scoped else 'Your own totals: delivered, currently out (pending), returned/not delivered, and returned-to-office tallies.' }}</p>
+    </div>
+    <div style="display:flex; gap:10px;">
+        {% if current_user.is_admin %}
+        <a href="{{ url_for('auth.users') }}" class="btn btn-outline">+ Register Personnel</a>
+        {% endif %}
+        <button class="btn btn-outline" id="export-csv-btn">Export CSV</button>
+        <button class="btn btn-primary" id="print-report-btn">Print</button>
+    </div>
+</div>
+
+<div class="stat-grid no-print">
+    {% if not scoped %}
+    <div class="stat-card">
+        <span class="eyebrow">Delivery personnel</span>
+        <div class="stat-number" id="stat-personnel">-</div>
+    </div>
+    {% endif %}
+    <div class="stat-card accent-blue">
+        <span class="eyebrow">Total delivered</span>
+        <div class="stat-number" id="stat-delivered">-</div>
+    </div>
+    <div class="stat-card accent-gold">
+        <span class="eyebrow">Total pending (out)</span>
+        <div class="stat-number" id="stat-pending">-</div>
+    </div>
+    <div class="stat-card">
+        <span class="eyebrow">Total returned</span>
+        <div class="stat-number" id="stat-returned">-</div>
+    </div>
+    <div class="stat-card">
+        <span class="eyebrow">Returned to office</span>
+        <div class="stat-number" id="stat-returned-office">-</div>
+    </div>
+</div>
+
+<div class="table-panel">
+    <div id="print-header" class="print-only">
+        <h2>PhilSys ID Delivery &mdash; Personnel Report</h2>
+        <p id="print-meta"></p>
+    </div>
+    <div id="table-wrap">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Delivery Personnel</th>
+                    <th>Username</th>
+                    <th>Status</th>
+                    <th>Total Checked Out</th>
+                    <th>Total Delivered</th>
+                    <th>Total Pending (Out)</th>
+                    <th>Total Returned / Not Delivered</th>
+                    <th>Returned to Office</th>
+                    <th class="no-print">Transmittal</th>
+                </tr>
+            </thead>
+            <tbody id="personnel-tbody">
+                <tr><td colspan="9" class="empty-state">Loading records...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/personnel.js') }}"></script>
+{% endblock %}

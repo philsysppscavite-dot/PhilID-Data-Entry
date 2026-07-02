@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}Check-In System{% endblock %}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+{% if current_user.is_authenticated %}
+<div class="app-shell">
+    <aside class="sidebar">
+        <div class="brand">
+            <img src="{{ url_for('static', filename='img/philsys.png') }}" alt="PhilSys" class="brand-logo">
+            <div class="brand-text">
+                <span class="brand-title">CheckPoint</span>
+                <span class="brand-sub">ID Verification System</span>
+            </div>
+        </div>
+        <nav class="nav-links">
+            <a href="{{ url_for('main.dashboard') }}" class="{{ 'active' if request.endpoint == 'main.dashboard' }}">
+                <span class="nav-icon">&#9635;</span> {{ 'Dashboard' if current_user.is_admin else 'My Activity' }}
+            </a>
+            <a href="{{ url_for('main.scan') }}" class="{{ 'active' if request.endpoint == 'main.scan' }}">
+                <span class="nav-icon">&#9635;</span> Scan ID
+            </a>
+            <a href="{{ url_for('main.search') }}" class="{{ 'active' if request.endpoint == 'main.search' }}">
+                <span class="nav-icon">&#9635;</span> Search
+            </a>
+            <a href="{{ url_for('main.masterlist') }}" class="{{ 'active' if request.endpoint == 'main.masterlist' }}">
+                <span class="nav-icon">&#9635;</span> Masterlist
+            </a>
+            <a href="{{ url_for('main.reports') }}" class="{{ 'active' if request.endpoint == 'main.reports' }}">
+                <span class="nav-icon">&#9635;</span> {{ 'Delivery Report' if current_user.is_admin else 'My Deliveries' }}
+            </a>
+            <a href="{{ url_for('main.personnel') }}" class="{{ 'active' if request.endpoint == 'main.personnel' }}">
+                <span class="nav-icon">&#9635;</span> {{ 'Delivery Personnel' if current_user.is_admin else 'My Performance' }}
+            </a>
+            <a href="{{ url_for('main.transmittal') }}" class="{{ 'active' if request.endpoint == 'main.transmittal' }}">
+                <span class="nav-icon">&#9635;</span> Transmittal
+            </a>
+            {% if current_user.is_admin %}
+            <a href="{{ url_for('auth.users') }}" class="{{ 'active' if request.endpoint == 'auth.users' }}">
+                <span class="nav-icon">&#9635;</span> Manage Users
+            </a>
+            {% endif %}
+        </nav>
+        <div class="sidebar-footer">
+            <div class="user-chip">
+                <div class="user-avatar">{{ current_user.full_name[0]|upper }}</div>
+                <div>
+                    <div class="user-name">{{ current_user.full_name }}</div>
+                    <div class="user-role">{{ current_user.role|capitalize }}</div>
+                </div>
+            </div>
+            <a href="{{ url_for('auth.logout') }}" class="logout-link">Sign out</a>
+        </div>
+    </aside>
+    <main class="main-content">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <div class="flash-stack">
+                {% for category, message in messages %}
+                <div class="flash flash-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </main>
+</div>
+{% else %}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-stack flash-stack-standalone">
+            {% for category, message in messages %}
+            <div class="flash flash-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    {% endwith %}
+    {% block content_standalone %}{% endblock %}
+{% endif %}
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

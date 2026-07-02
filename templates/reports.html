@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Delivery Report · CheckPoint{% endblock %}
+{% block content %}
+<div class="page-header no-print">
+    <div>
+        <span class="eyebrow">Reporting</span>
+        <h1>{{ 'ID Delivery Report' if not scoped else 'My Deliveries' }}</h1>
+        <p>{{ 'Delivery status per resident with proof-of-delivery photo documentation.' if not scoped else 'Delivery status for the residents assigned to / handled by you.' }}</p>
+    </div>
+    <div style="display:flex; gap:10px;">
+        <button class="btn btn-outline" id="export-csv-btn">Export CSV</button>
+        <button class="btn btn-primary" id="print-report-btn">Print Report</button>
+    </div>
+</div>
+
+<div class="stat-grid no-print">
+    <div class="stat-card">
+        <span class="eyebrow">Total residents</span>
+        <div class="stat-number" id="stat-total">-</div>
+    </div>
+    <div class="stat-card accent-blue">
+        <span class="eyebrow">Delivered</span>
+        <div class="stat-number" id="stat-delivered">-</div>
+    </div>
+    <div class="stat-card accent-gold">
+        <span class="eyebrow">Out for delivery</span>
+        <div class="stat-number" id="stat-out">-</div>
+    </div>
+    <div class="stat-card">
+        <span class="eyebrow">Returned</span>
+        <div class="stat-number" id="stat-returned">-</div>
+    </div>
+    <div class="stat-card">
+        <span class="eyebrow">Returned to office</span>
+        <div class="stat-number" id="stat-returned-office">-</div>
+    </div>
+    <div class="stat-card accent-gold">
+        <span class="eyebrow">Pending</span>
+        <div class="stat-number" id="stat-pending">-</div>
+    </div>
+</div>
+
+<div class="table-panel">
+    <div class="table-toolbar no-print">
+        <select id="filter-province"><option value="">All provinces</option></select>
+        <select id="filter-city"><option value="">All cities/municipalities</option></select>
+        <select id="filter-status">
+            <option value="">All statuses</option>
+            <option value="delivered">Delivered</option>
+            <option value="out_for_delivery">Out for delivery</option>
+            <option value="returned">Returned / not delivered</option>
+            <option value="returned_to_office">Returned to office</option>
+            <option value="pending">Pending</option>
+        </select>
+        <input type="date" id="filter-date-from" title="Resolved from">
+        <input type="date" id="filter-date-to" title="Resolved to">
+        <span class="spacer"></span>
+        <button class="btn btn-outline btn-sm" id="clear-filters">Clear filters</button>
+    </div>
+
+    <div id="print-header" class="print-only">
+        <h2>PhilSys ID Delivery Report</h2>
+        <p id="print-meta"></p>
+    </div>
+
+    <div id="report-wrap"></div>
+</div>
+
+<!-- Photo lightbox -->
+<div id="photo-modal" class="modal-overlay no-print" style="display:none;">
+    <div class="modal-box bracket-panel" style="max-width:520px; text-align:center;">
+        <span class="bracket-bl"></span><span class="bracket-br"></span>
+        <img id="photo-modal-img" src="" alt="Proof of delivery" style="max-width:100%; border-radius:8px; margin-bottom:14px;">
+        <div id="photo-modal-caption" style="font-size:13px; color: var(--ink-soft); margin-bottom:14px;"></div>
+        <button type="button" class="btn btn-outline" id="photo-modal-close">Close</button>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/reports.js') }}"></script>
+{% endblock %}

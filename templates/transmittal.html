@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Transmittal · CheckPoint{% endblock %}
+{% block content %}
+<div class="page-header no-print">
+    <div>
+        <span class="eyebrow">Delivery Personnel</span>
+        <h1>ID Transmittal</h1>
+        <p>{{ 'Printable transmittal of IDs assigned to (checked out by) a specific delivery personnel/user.' if not scoped else 'Printable transmittal of the IDs currently assigned to you.' }}</p>
+    </div>
+    <div style="display:flex; gap:10px;">
+        <button class="btn btn-outline" id="export-csv-btn">Export CSV</button>
+        <button class="btn btn-primary" id="print-list-btn">Print Transmittal</button>
+    </div>
+</div>
+
+<div class="table-panel">
+    <div class="table-toolbar no-print">
+        {% if not scoped %}
+        <select id="filter-personnel"><option value="">Select delivery personnel / user...</option></select>
+        {% endif %}
+        <select id="filter-status">
+            <option value="out_for_delivery">Out for delivery (currently assigned)</option>
+            <option value="delivered">Already delivered</option>
+            <option value="returned">Returned / not delivered</option>
+            <option value="returned_to_office">Returned to office</option>
+            <option value="">All statuses</option>
+        </select>
+        <span class="spacer"></span>
+        <button class="btn btn-outline btn-sm" id="reload-btn">Load</button>
+    </div>
+
+    <div id="print-header" class="print-only">
+        <h2>PhilSys ID Delivery Transmittal</h2>
+        <p id="print-meta"></p>
+    </div>
+
+    <div id="transmittal-body">
+        <div class="empty-state">{{ 'Select a delivery personnel/user above to generate their transmittal.' if not scoped else 'Loading your transmittal...' }}</div>
+    </div>
+
+    <div id="print-signoff" class="print-only" style="margin-top: 34px; display:flex; gap: 40px;">
+        <div style="flex:1;">
+            <div style="border-top: 1px solid #000; margin-top: 40px; padding-top: 6px; font-size: 12px;">Released by (Office) &mdash; Signature over Printed Name / Date</div>
+        </div>
+        <div style="flex:1;">
+            <div style="border-top: 1px solid #000; margin-top: 40px; padding-top: 6px; font-size: 12px;">Received by (Delivery Personnel) &mdash; Signature over Printed Name / Date</div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>window.TRANSMITTAL_SCOPED = {{ 'true' if scoped else 'false' }};</script>
+<script src="{{ url_for('static', filename='js/transmittal.js') }}"></script>
+{% endblock %}
