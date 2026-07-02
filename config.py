@@ -16,6 +16,22 @@ class Config:
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
+    # Render's Postgres (and most managed Postgres hosts) silently closes
+    # connections that sit idle for a while. Without these options,
+    # SQLAlchemy can hand out one of those dead connections from its pool
+    # and the first query on it fails with:
+    #   sqlalchemy.exc.OperationalError: (psycopg2.OperationalError)
+    #   SSL SYSCALL error: EOF detected
+    # pool_pre_ping issues a cheap "is this connection still alive?" check
+    # before every checkout and transparently reconnects if not.
+    # pool_recycle proactively replaces connections older than 5 minutes so
+    # they never get old enough for the host to kill them out from under us.
+    # This is a no-op on SQLite (it has no such server-side idle timeout).
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        "pool_pre_ping": True,
+        "pool_recycle": 280,
+    }
+
     # Set FLASK_DEBUG=1 in your environment for local development only.
     # Never enable debug mode on a live/public deployment.
     DEBUG = os.environ.get("FLASK_DEBUG", "0") == "1"
