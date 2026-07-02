@@ -23,7 +23,7 @@ import csv
 import hashlib
 import os
 
-from sqlalchemy import text
+from sqlalchemy import inspect, text
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 CSV_PATH = os.path.join(BASE_DIR, "data", "geocode.csv")
@@ -31,27 +31,30 @@ CSV_PATH = os.path.join(BASE_DIR, "data", "geocode.csv")
 
 def ensure_resident_columns(db):
     """Add any columns missing from the residents table, without touching
-    existing rows. Safe to run on every startup."""
+    existing rows. Safe to run on every startup. Works on both SQLite
+    (local dev) and Postgres (Render) via SQLAlchemy's inspector instead
+    of SQLite-only PRAGMA statements."""
     from models import Resident
 
     engine = db.engine
-    with engine.connect() as conn:
-        existing = {
-            row[1] for row in conn.execute(text("PRAGMA table_info(residents)"))
-        }
-        if not existing:
-            # Table doesn't exist yet at all (fresh install) -- db.create_all()
-            # in app.py already handles that case, nothing to do here.
-            return
+    inspector = inspect(engine)
 
+    if not inspector.has_table("residents"):
+        # Table doesn't exist yet at all (fresh install) -- db.create_all()
+        # in app.py already handles that case, nothing to do here.
+        return
+
+    existing = {col["name"] for col in inspector.get_columns("residents")}
+
+    with engine.connect() as conn:
         added = []
         for column in Resident.__table__.columns:
             if column.name in existing:
                 continue
 
-            col_type = _sqlite_type_for(column)
+            col_type = _column_type_for(column, engine.dialect.name)
             ddl = f"ALTER TABLE residents ADD COLUMN {column.name} {col_type}"
-            default_clause = _sqlite_default_clause(column)
+            default_clause = _default_clause_for(column, engine.dialect.name)
             if default_clause:
                 ddl += f" {default_clause}"
             conn.execute(text(ddl))
@@ -62,7 +65,7 @@ def ensure_resident_columns(db):
             print(f"[migrations] Added missing column(s) to residents table: {', '.join(added)}")
 
 
-def _sqlite_type_for(column):
+def _column_type_for(column, dialect_name):
     from sqlalchemy import Boolean, DateTime, Integer, String
 
     if isinstance(column.type, Integer):
@@ -70,13 +73,15 @@ def _sqlite_type_for(column):
     if isinstance(column.type, Boolean):
         return "BOOLEAN"
     if isinstance(column.type, DateTime):
-        return "DATETIME"
+        # SQLite accepts "DATETIME" as a type affinity; Postgres does not
+        # have a DATETIME type and requires TIMESTAMP instead.
+        return "TIMESTAMP" if dialect_name == "postgresql" else "DATETIME"
     if isinstance(column.type, String):
         return "VARCHAR"
     return "TEXT"
 
 
-def _sqlite_default_clause(column):
+def _default_clause_for(column, dialect_name):
     """Returns a ' DEFAULT ...' clause for columns with a simple scalar
     default, so existing rows are backfilled instead of left NULL when a
     new NOT NULL-ish column (e.g. Resident.source) is added to a table
@@ -88,6 +93,8 @@ def _sqlite_default_clause(column):
     if isinstance(value, str):
         return f"DEFAULT '{value}'"
     if isinstance(value, bool):
+        if dialect_name == "postgresql":
+            return f"DEFAULT {'TRUE' if value else 'FALSE'}"
         return f"DEFAULT {1 if value else 0}"
     if isinstance(value, (int, float)):
         return f"DEFAULT {value}"
