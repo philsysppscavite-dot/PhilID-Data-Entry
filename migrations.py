@@ -2,18 +2,24 @@
 Lightweight, dependency-free "migrations" that run automatically every
 time the app starts (see app.py -> create_app()).
 
-This app uses a plain SQLite file rather than a full migration framework
-(like Alembic), so when a column gets added to a model in models.py, an
-*existing* database file on someone's computer doesn't automatically get
-that column -- SQLAlchemy's db.create_all() only creates tables that don't
-exist yet, it never alters existing ones. That mismatch is what caused:
-
-    sqlite3.OperationalError: no such column: residents.contact_number
+Rather than a full migration framework (like Alembic), this app relies on
+db.create_all() plus the functions below. The catch: db.create_all() only
+creates tables that don't exist yet -- it NEVER alters a table that's
+already there. That's a problem in two situations:
+  - Locally: someone's existing SQLite file doesn't automatically get a
+    newly-added model column.
+  - On a host like Render: the database persists across deploys (only the
+    app's filesystem gets wiped on redeploy), so a table created by an
+    older version of models.py can be left permanently missing columns
+    that the current model expects -- causing errors like
+    "column users.foo does not exist" the moment that column is touched.
 
 The functions below fix that safely:
-  - ensure_resident_columns(): adds any columns that exist on the Resident
-    model but not on the actual residents table yet. This never touches
-    existing data/rows, it only adds new (empty) columns.
+  - ensure_all_columns(): adds any columns that exist on a model but not
+    on its actual database table yet, for EVERY table in the app (users,
+    residents, etc). This never touches existing data/rows, it only adds
+    new (empty) columns. Works on both SQLite and Postgres via
+    SQLAlchemy's inspector rather than SQLite-only PRAGMA statements.
   - sync_geo_data(): re-imports data/geocode.csv into the GeoBarangay
     reference table whenever that CSV file changes, so replacing the CSV
     (e.g. with updated province/city/barangay data) actually takes effect
@@ -29,40 +35,42 @@ BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 CSV_PATH = os.path.join(BASE_DIR, "data", "geocode.csv")
 
 
-def ensure_resident_columns(db):
-    """Add any columns missing from the residents table, without touching
-    existing rows. Safe to run on every startup. Works on both SQLite
-    (local dev) and Postgres (Render) via SQLAlchemy's inspector instead
-    of SQLite-only PRAGMA statements."""
-    from models import Resident
+def ensure_all_columns(db):
+    """Add any columns missing from ANY of the app's tables, without
+    touching existing rows. Safe to run on every startup."""
+    import models  # noqa: F401  (ensures every model class is registered)
 
     engine = db.engine
     inspector = inspect(engine)
 
-    if not inspector.has_table("residents"):
-        # Table doesn't exist yet at all (fresh install) -- db.create_all()
-        # in app.py already handles that case, nothing to do here.
-        return
+    for mapper in db.Model.registry.mappers:
+        table = mapper.class_.__table__
+        table_name = table.name
 
-    existing = {col["name"] for col in inspector.get_columns("residents")}
+        if not inspector.has_table(table_name):
+            # Table doesn't exist yet at all (fresh install) -- db.create_all()
+            # in app.py already handles that case, nothing to do here.
+            continue
 
-    with engine.connect() as conn:
-        added = []
-        for column in Resident.__table__.columns:
-            if column.name in existing:
-                continue
+        existing = {col["name"] for col in inspector.get_columns(table_name)}
 
-            col_type = _column_type_for(column, engine.dialect.name)
-            ddl = f"ALTER TABLE residents ADD COLUMN {column.name} {col_type}"
-            default_clause = _default_clause_for(column, engine.dialect.name)
-            if default_clause:
-                ddl += f" {default_clause}"
-            conn.execute(text(ddl))
-            added.append(column.name)
+        with engine.connect() as conn:
+            added = []
+            for column in table.columns:
+                if column.name in existing:
+                    continue
 
-        if added:
-            conn.commit()
-            print(f"[migrations] Added missing column(s) to residents table: {', '.join(added)}")
+                col_type = _column_type_for(column, engine.dialect.name)
+                ddl = f'ALTER TABLE {table_name} ADD COLUMN {column.name} {col_type}'
+                default_clause = _default_clause_for(column, engine.dialect.name)
+                if default_clause:
+                    ddl += f" {default_clause}"
+                conn.execute(text(ddl))
+                added.append(column.name)
+
+            if added:
+                conn.commit()
+                print(f"[migrations] Added missing column(s) to {table_name} table: {', '.join(added)}")
 
 
 def _column_type_for(column, dialect_name):
@@ -84,8 +92,7 @@ def _column_type_for(column, dialect_name):
 def _default_clause_for(column, dialect_name):
     """Returns a ' DEFAULT ...' clause for columns with a simple scalar
     default, so existing rows are backfilled instead of left NULL when a
-    new NOT NULL-ish column (e.g. Resident.source) is added to a table
-    that already has data."""
+    new NOT NULL-ish column is added to a table that already has data."""
     default = column.default
     if default is None or not getattr(default, "is_scalar", False):
         return ""
@@ -229,6 +236,6 @@ def sync_masterlist_data(db):
 
 
 def run_all(db):
-    ensure_resident_columns(db)
+    ensure_all_columns(db)
     sync_geo_data(db)
     sync_masterlist_data(db)
